@@ -42,24 +42,10 @@ Some final oberservations are that it is typically not possible even if potentia
 
 Mitgation 
 
-Mitigation of the issue of effectively random distribution of ICMPv6 PTB messages involves insuring that the packet in question is distributed to the load-balancer responsible for for the flow for which it is generated. Mitigation could be done by looking into payload of the ICMP message as the load balancer would (to determine which TCP flow it was associated with) before making a forwarding decision. 
 
-Alternative mitigation is predicated distributing the PTB message to all load-balancers under the assumption that the one that needs it will be able to match it to a flow and the others will safely discard it. Such distribution has signficant implications for resource consumption (it might result in a 10 or more fold increase in the amount of ICMP PTB traffic) and the potential for DOS if not carefully employed. Fortunately the number of flows for which this problem occurs is relatively small (10 or fewer pps on 1Gb/s or more worth of https traffic) and sensible ingress rate limits can protect the load-balancer tiers with potential fallout only under circumstances of deliberate duress.
 
-Our implementation 
 
-1. Filter-based-forwarding matches next-header ICMP6 ICMP type-2 and matches a next hop on a particular subnet directly attached to both border routers. (Filter is policed to 1000pps)
-
-2. Filter is applied on input side of all external interfaces
-
-3. A proxy located at the next hop forwards ICMP6 type-2 packets recived at the nexthop to an ethernet multicast address (example ff:ff:ff:ff:ff:ff) on all specificed subnets. This was necessitated by, The routers inability (in IPv6) to forward the same packet to multiple nexthops.
-
-4. load balancer(s) recieve and discard or process packet as needed
 
 Improvements 
 
-There are several ways to imagine that improvements could be made to the situation with respect load balancing ICMP PTB. 
 
-1. Routers with sufficient capacity within the lookup process could parse all the way through the L3 or L4 header in the ICMP Payload begining at bit offset 32 of the ICMP header. By reordering the elements of the hash to match the inward direction of the flow the PTB could be directed to the same nexthop as the incoming packets in the flow.
-
-2. The Fib could be programed with a multicast distribution tree that included all of the necessary nexthops.
