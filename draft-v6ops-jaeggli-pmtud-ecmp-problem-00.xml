@@ -54,8 +54,8 @@
 
     <!-- Another author who claims to be an editor -->
 
-    <author fullname="Joel Jaeggli" initials="J." surname="Jaeggli">
-      <organization>Fastly</organization>
+    <author fullname="Matt Byerly" initials="M." surname="Byerly">
+      <organization>Zynga</organization>
 
       <address>
         <postal>
@@ -63,9 +63,9 @@
 
           <!-- Reorder these if your country does things differently -->
 
-          <city>Mountain View</city>
+          <city></city>
 
-          <region>CA</region>
+          <region>HI</region>
 
           <code></code>
 
@@ -74,7 +74,7 @@
 
         <phone></phone>
 
-        <email>joelja@gmail.com</email>
+        <email>mbyerly@zynga.com</email>
 
         <!-- uri and facsimile elements may also be added -->
       </address>
@@ -103,10 +103,11 @@
         <email>mhite@zynga.com</email>
 
    </address>
-    </author>
+  </author>
 
-    <author fullname="Matt Byerly" initials="M." surname="Byerly">
-      <organization>Zynga</organization>
+
+    <author fullname="Joel Jaeggli" initials="J." surname="Jaeggli">
+      <organization>Fastly</organization>
 
       <address>
         <postal>
@@ -114,9 +115,9 @@
 
           <!-- Reorder these if your country does things differently -->
 
-          <city></city>
+          <city>Mountain View</city>
 
-          <region>HI</region>
+          <region>CA</region>
 
           <code></code>
 
@@ -125,7 +126,7 @@
 
         <phone></phone>
 
-        <email>mbyerly@zynga.com</email>
+        <email>joelja@gmail.com</email>
 
         <!-- uri and facsimile elements may also be added -->
       </address>
