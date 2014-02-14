@@ -151,7 +151,7 @@
 	 If this element is not present, the default is "Network Working Group",
          which is used by the RFC Editor as a nod to the history of the IETF. -->
 
-    <keyword>ipv6 ptb</keyword>
+    <keyword>ipv6 icmp6 type 2 ptb</keyword>
 
     <!-- Keywords will be incorporated into HTML output
          files in a meta tag but they have no effect on text or nroff
@@ -159,13 +159,13 @@
          keywords will be used for the search engine. -->
 
     <abstract>
-      <t></t>
+      <t>This document calls attention the problem posed to ICMP type 2 (PTB) messages by using stateless loading balancing in front of statelful services and discusses operational mitigations that reduce the incidence of failure. </t>
     </abstract>
   </front>
 
   <middle>
     <section title="Introduction">
-      <t></t>
+      <t>The operators of large internet applications face some challenges associated with scaling their infrastructure. One approach in the toolbox which is used in conjunction with others is the stateless distribution of incoming tcp sessions to stateful load balancers using an ecmp hash. Distribution of traffic in this fashion presents a problem when dealing with signaling that does not match the values used compute the hash employed to distribute traffic. A case that is particularly problematic is path MTU discovery (PMTUD).</t>
 
 <!--
       <section title="Requirements Language">
