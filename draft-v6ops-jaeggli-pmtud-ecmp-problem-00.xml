@@ -197,9 +197,9 @@
 
 ptb -> router ecmp -> nexthop L4/L7 load balancer -> destination
 
-  router --> load-balancer 1 --->
-       \\--> load-balancer 2 ---> load-balanced service
-        \--> load-balancer N --->
+  router --> load balancer 1 --->
+       \\--> load balancer 2 ---> load-balanced service
+        \--> load balancer N --->
 
             ]]></artwork>
 
@@ -207,11 +207,11 @@ ptb -> router ecmp -> nexthop L4/L7 load balancer -> destination
       </figure>
 
 <t>
-The router ECMP decsion is used because it is part of the forwarding architecture, can be performed at line rate and does not dependent on shared state or coordination across a distributed forwarding architecture. The ECMP routing decision is determinstic with respect to packets having the same hash.
+The router ECMP decision is used because it is part of the forwarding architecture, can be performed at line rate and does not dependent on shared state or coordination across a distributed forwarding architecture. The ECMP routing decision is deterministic with respect to packets having the same hash.
 </t>
 
 <t>
-  The typical case where ICMPv6 PTB messages are recieved at the load-balancer is where the path MTU from the client to the load-balancer is limited by a tunnel in which the client itself is not aware of. In the case of a TCP connection where TLS is employed, the first packet that is likely to exceed a tunnel MTU lower than that specified by the MSS on the client and the load-balancer/server is the serverhello and certificate (With http the client is likely to send the first packet exceeding the MTU given the loquatious nature of http clients).
+  The typical case where ICMPv6 PTB messages are received at the load balancer is where the path MTU from the client to the load balancer is limited by a tunnel in which the client itself is not aware of. In the case of a TCP connection where TLS is employed, the first packet that is likely to exceed a tunnel MTU lower than that specified by the MSS on the client and the load balancer/server is the serverhello and certificate (With http the client is likely to send the first packet exceeding the MTU given the loquatious nature of http clients).
 </t>
 
 <t>
@@ -223,13 +223,13 @@ The router ECMP decsion is used because it is part of the forwarding architectur
   </t>
 </section>
 
-  <section title="mitigation">
+  <section title="Mitigation">
     <t>
-      Mitigation of the issue of effectively random distribution of ICMPv6 PTB messages involves insuring that the packet in question is distributed to the load-balancer responsible for for the flow for which it is generated. Mitigation could be done by looking into payload of the ICMP message as the load balancer would (to determine which TCP flow it was associated with) before making a forwarding decision.
+      Mitigation of the issue of effectively random distribution of ICMPv6 PTB messages involves ensuring that the packet in question is distributed to the load balancer responsible for for the flow for which it is generated. Mitigation could be done by looking into the payload of the ICMP message as the load balancer would (to determine which TCP flow it was associated with) before making a forwarding decision.
     </t>
 
     <t>
-      Alternative mitigation is predicated distributing the PTB message to all load-balancers under the assumption that the one that needs it will be able to match it to a flow and the others will safely discard it. Such distribution has signficant implications for resource consumption (it might result in a 10 or more fold increase in the amount of ICMP PTB traffic) and the potential for self-inflicted denial-of-service if not carefully employed. Fortunately the number of flows for which this problem occurs is relatively small (10 or fewer pps on 1Gb/s or more worth of https traffic) and sensible ingress rate limits can protect the load-balancer tiers with potential fallout only under circumstances of deliberate duress.
+      Alternative mitigation is predicated distributing the PTB message to all load balancers under the assumption that the one that needs it will be able to match it to a flow and the others will safely discard it. Such distribution has signficant implications for resource consumption (it might result in a 10 or more fold increase in the amount of ICMP PTB traffic) and the potential for self-inflicted denial-of-service if not carefully employed. Fortunately the number of flows for which this problem occurs is relatively small (10 or fewer pps on 1Gb/s or more worth of https traffic) and sensible ingress rate limits can protect the load balancer tiers with potential fallout only under circumstances of deliberate duress.
     </t>
 
     <section title="Implementation">
@@ -245,6 +245,32 @@ The router ECMP decsion is used because it is part of the forwarding architectur
 
         <t>
           A proxy located at the next hop forwards ICMP6 type-2 packets received at the nexthop to an ethernet broadcast address (example ff:ff:ff:ff:ff:ff) on all specificed subnets. This was necessitated by the routers inability (in IPv6) to forward the same packet to multiple nexthops.
+        </t>
+
+        <t>
+          A simple Python scapy script can be used to perform the ICMPv6 reflection.
+
+          #!/usr/bin/python
+
+          from scapy.all import *
+
+          IFACE_OUT = ["p2p1", "p2p2"]
+
+          def icmp6_callback(pkt):
+              if pkt.haslayer(IPv6) and (ICMPv6PacketTooBig in pkt) and pkt[Ether].dst != 'ff:ff:ff:ff:ff:ff':
+                  del(pkt[Ether].src)
+                  pkt[Ether].dst = 'ff:ff:ff:ff:ff:ff'
+                  pkt.show()
+                  for iface in IFACE_OUT:
+                      sendp(pkt, iface=iface)
+
+          def main():
+              sniff(prn=icmp6_callback, filter="icmp6 and (ip6[40+0] == 2)", store=0)
+
+          if __name__ == '__main__':
+              main()
+
+          This example script listens on all interfaces for IPv6 PTB errors being forwarded using filter-based-forwarding. It removes the existing Ethernet source and rewrites a new Ethernet destination of the Ethernet broadcast address.
         </t>
 
         <t>
