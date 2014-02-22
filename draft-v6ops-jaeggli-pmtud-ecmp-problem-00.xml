@@ -63,7 +63,7 @@
 
           <!-- Reorder these if your country does things differently -->
 
-          <city></city>
+          <city>Kapolei</city>
 
           <region>HI</region>
 
@@ -152,7 +152,7 @@
 	 If this element is not present, the default is "Network Working Group",
          which is used by the RFC Editor as a nod to the history of the IETF. -->
 
-    <keyword>ipv6 icmp6 type 2 ptb</keyword>
+    <keyword>ipv6 icmp6 icmpv6 type 2 ptb</keyword>
 
     <!-- Keywords will be incorporated into HTML output
          files in a meta tag but they have no effect on text or nroff
@@ -160,13 +160,13 @@
          keywords will be used for the search engine. -->
 
     <abstract>
-      <t>This document calls attention to the problem of delivering ICMPv6 type 2 "Packet Too Big" (PTB) messages to the intended destination in anycast network architectures. It discusses operational mitigations that can address this kind of failure.</t>
+      <t>This document calls attention to the problem of delivering ICMPv6 type 2 "Packet Too Big" (PTB) messages to intended destinations in ECMP load balanced, anycast network architectures. It discusses operational mitigations that can address this class of failure.</t>
     </abstract>
   </front>
 
   <middle>
     <section title="Introduction">
-      <t>The operators of popular Internet applications face unique challenges associated with scaling their infrastructure. One approach is the stateless distribution of incoming TCP sessions to multiple servers or middle boxes such as load balancers using equal-cost multi-path (ECMP) routing. However, distribution of traffic in this manner presents a problem when dealing with ICMP signaling. Specifically, an ICMP error related to a specific TCP flow is not guaranteed to hash via ECMP to the same destination. A case that is particularly problematic operationally is path MTU discovery (PMTUD).</t>
+      <t>Operators of popular Internet services face unique challenges associated with scaling their infrastructure. One approach is to utilize equal-cost multi-path (ECMP) routing to perform stateless distribution of incoming TCP or UDP sessions to multiple servers or middle boxes such as load balancers. However, distribution of traffic in this manner presents a problem when dealing with ICMP signaling. Specifically, an ICMP error is not guaranteed to hash via ECMP to the same destination as its corresponding TCP or UDP session. A case that is particularly problematic operationally is path MTU discovery (PMTUD).</t>
 
 <!--
       <section title="Requirements Language">
@@ -179,11 +179,11 @@
 
     <section title="Problem">
       <t>
-        A common application for stateless load balancing of TCP or UDP flows is to perform an initial subdivision of flows in front of a stateful load balancer tier or multiple servers such that the workload can be divided into managable chunks. The division is performed using ECMP forwarding and a stateless but sticky algorithm for hashing the flows across the available paths. This is a constrained form of anycast distribution where all anycast destinations are equidistant topologically from the upstream router making the last next-hop forwarding decision. In this approach the hash used in path selection has to use available headers, typically IP-source/IP-destination/protocol/source-port/destination-port for TCP or UDP though it could be limited to IP-source / IP-destination or in the case of IPv6 IP-source/IP-destination/flow-label.
+        A common application for stateless load balancing of TCP or UDP flows is to perform an initial subdivision of flows in front of a stateful load balancer tier or multiple servers such that the workload is divided into managable chunks. The division is performed using ECMP forwarding and a stateless but sticky algorithm for hashing the flows across the available paths. This is a constrained form of anycast distribution where all anycast destinations are equidistant topologically from the upstream router responsible for making the last next-hop forwarding decision. In this approach, the hash is performed across available protocol headers. Typically, these headers may include flow-label, ingress interface, IP-source, IP-destination, protocol, source-port, and destination-port.
       </t>
 
       <t>
-        A problem common to this approach to distribution through hashing is its impact on path MTU discovery. An ICMPv6 type 2 PTB message generated on the path taken by packets originating from a statelessy load balanced server will have the anycast address as destination and will be statelessly load balanced to one of the stateful load balancers. While the ICMPv6 PTB message contains as much of the packet that could not be forwarded as possible, the payload does not factor into the forwarding decision and it is not possible to reconstruct the results of the inward bound hashing decision (by reverseing the order of the source/dest/source port/dest port/protocol number or equivalent hash).
+        A problem common to the approach of distribution through hashing is its impact on path MTU discovery. An ICMPv6 type 2 PTB message generated on the path between a client and an ECMP load balanced server will have the anycast address as the destination and will be statelessly load balanced to one of the anycast servers. While the ICMPv6 PTB message contains as much of the packet that could not be forwarded as possible, the payload headers do not factor into the forwarding decision and are ignored. Because of this, the results of the ICMPv6 ECMP hash do not match that of the corresponding TCP or UDP ECMP hash.
       </t>
 
       <t>
@@ -207,36 +207,36 @@ ptb -> router ecmp -> nexthop L4/L7 load balancer -> destination
       </figure>
 
 <t>
-The router ECMP decision is used because it is part of the forwarding architecture, can be performed at line rate and does not dependent on shared state or coordination across a distributed forwarding architecture. The ECMP routing decision is deterministic with respect to packets having the same hash.
+The router ECMP decision is used because it is part of the forwarding architecture, can be performed at line rate, and does not depend on shared state or coordination across a distributed forwarding architecture. The ECMP routing decision is deterministic with respect to packets having the same hash.
 </t>
 
 <t>
-  The typical case where ICMPv6 PTB messages are received at the load balancer is where the path MTU from the client to the load balancer is limited by a tunnel in which the client itself is not aware of. In the case of a TCP connection where TLS is employed, the first packet that is likely to exceed a tunnel MTU lower than that specified by the MSS on the client and the load balancer/server is the serverhello and certificate (With http the client is likely to send the first packet exceeding the MTU given the loquatious nature of http clients).
+  The typical case where ICMPv6 PTB messages are received at the load balancer is where the path MTU from the client to the load balancer is limited by a tunnel in which the client itself is not aware of. In the case of a TCP connection where TLS is employed, the first packet that is likely to exceed a tunnel MTU lower than that specified by the MSS on the client and the load balancer/server is the serverhello and certificate.
 </t>
 
 <t>
-  Direct experience says that the frequency of PTB messages is fairly low as a percentage of traffic is pretty low, and that says a lot about native vs tunneled multicast deployment and techniques such as happy-eyeballs may actually contribute some amelioration to the IPv6 client experience. Still the expectation is that PMTUD should work and that unnecessary breakage of client traffic should work.
+  Direct experience says that the frequency of PTB messages is small as a percentage of traffic. This says a lot about native vs. tunneled IPv6 deployments and techniques such as happy-eyeballs may actually contribute some amelioration to the IPv6 client experience. Still, the expectation is that PMTUD should work and that unnecessary breakage of client traffic should be avoided.
 </t>
 
 <t>
-  Some final oberservations are that it is typically not possible even if potentially desirable to be able to independantly set the TCP MSS for different address families. The problem as described does also impact IPv4, however the ability to fragment on wire and the relative rarity of sub-1500 byte MTUs that are not coupled to changes in client behavior (client vpn tunnels for example typically set the MTU accordingly for perfomance reasons) makes the problem sufficiently rare that some deployments simply choose to ignore it.
+  Some final oberservations are that it is typically not possible even if potentially desirable to be able to independantly set the TCP MSS for different address families. The problem as described does also impact IPv4; however, the ability to fragment on wire and the relative rarity of sub-1500 byte MTUs that are not coupled to changes in client behavior (for example, endpoint VPN clients set the tunnel interface MTU accordingly for performance reasons) makes the problem sufficiently rare that some deployments simply choose to ignore it.
   </t>
 </section>
 
   <section title="Mitigation">
     <t>
-      Mitigation of the issue of effectively random distribution of ICMPv6 PTB messages involves ensuring that the packet in question is distributed to the load balancer responsible for for the flow for which it is generated. Mitigation could be done by looking into the payload of the ICMP message as the load balancer would (to determine which TCP flow it was associated with) before making a forwarding decision.
+      Mitigation of the described issue involves ensuring that an ICMPv6 error message is distributed to the same anycast server responsible for the flow for which the error is generated. Mitigation could be done by looking into the payload of the ICMPv6 message (to determine which TCP flow it was associated with) before making a forwarding decision.
     </t>
 
     <t>
-      Alternative mitigation is predicated distributing the PTB message to all load balancers under the assumption that the one that needs it will be able to match it to a flow and the others will safely discard it. Such distribution has signficant implications for resource consumption (it might result in a 10 or more fold increase in the amount of ICMP PTB traffic) and the potential for self-inflicted denial-of-service if not carefully employed. Fortunately the number of flows for which this problem occurs is relatively small (10 or fewer pps on 1Gb/s or more worth of https traffic) and sensible ingress rate limits can protect the load balancer tiers with potential fallout only under circumstances of deliberate duress.
+      Alternative mitigation is predicated upon distributing the PTB message to all anycast servers under the assumption that the one that needs it will be able to match it to a flow and the others can update their route cache with the new MTU. Such distribution has signficant implications for resource consumption and the potential for self-inflicted denial-of-service if not carefully employed. Fortunately, the number of flows for which this problem occurs is relatively small (10 or fewer pps on 1Gb/s or more worth of https traffic) and sensible ingress rate limits can protect the anycast server tiers with potential fallout only under circumstances of deliberate duress.
     </t>
 
     <section title="Implementation">
     <t>
       <list style="numbers">
         <t>
-          Filter-based-forwarding matches next-header ICMP6 ICMP type-2 and matches a next hop on a particular subnet directly attached to both border routers. (Filter is policed to 1000pps)
+          Filter-based-forwarding matches next-header ICMPv6 type-2 and matches a next-hop on a particular subnet directly attached to both border routers. (Filter is policed to 1000pps)
         </t>
 
         <t>
@@ -244,55 +244,53 @@ The router ECMP decision is used because it is part of the forwarding architectu
         </t>
 
         <t>
-          A proxy located at the next hop forwards ICMP6 type-2 packets received at the nexthop to an ethernet broadcast address (example ff:ff:ff:ff:ff:ff) on all specificed subnets. This was necessitated by the routers inability (in IPv6) to forward the same packet to multiple nexthops.
+          A proxy located at the next hop forwards ICMPv6 type-2 packets received at the next-hop to an Ethernet broadcast address (example ff:ff:ff:ff:ff:ff) on all specified subnets. This was necessitated by the routers inability (in IPv6) to forward the same packet to multiple next-hops.
         </t>
 
         <t>
-          A simple Python scapy script can be used to perform the ICMPv6 reflection.
-
-          #!/usr/bin/python
-
-          from scapy.all import *
-
-          IFACE_OUT = ["p2p1", "p2p2"]
-
-          def icmp6_callback(pkt):
-              if pkt.haslayer(IPv6) and (ICMPv6PacketTooBig in pkt) and pkt[Ether].dst != 'ff:ff:ff:ff:ff:ff':
-                  del(pkt[Ether].src)
-                  pkt[Ether].dst = 'ff:ff:ff:ff:ff:ff'
-                  pkt.show()
-                  for iface in IFACE_OUT:
-                      sendp(pkt, iface=iface)
-
-          def main():
-              sniff(prn=icmp6_callback, filter="icmp6 and (ip6[40+0] == 2)", store=0)
-
-          if __name__ == '__main__':
-              main()
-
-          This example script listens on all interfaces for IPv6 PTB errors being forwarded using filter-based-forwarding. It removes the existing Ethernet source and rewrites a new Ethernet destination of the Ethernet broadcast address.
+          Anycast servers receive the PTB error and process packet as needed
         </t>
-
-        <t>
-          load balancer(s) recieve and discard or process packet as needed
-        </t>
-
       </list>
+    </t>
+    <t>
+      A simple Python scapy script can be used to perform the ICMPv6 proxy reflection.
+
+      #!/usr/bin/python
+
+      from scapy.all import *
+
+      IFACE_OUT = ["p2p1", "p2p2"]
+
+      def icmp6_callback(pkt):
+          if pkt.haslayer(IPv6) and (ICMPv6PacketTooBig in pkt) and pkt[Ether].dst != 'ff:ff:ff:ff:ff:ff':
+              del(pkt[Ether].src)
+              pkt[Ether].dst = 'ff:ff:ff:ff:ff:ff'
+              pkt.show()
+              for iface in IFACE_OUT:
+                  sendp(pkt, iface=iface)
+
+      def main():
+          sniff(prn=icmp6_callback, filter="icmp6 and (ip6[40+0] == 2)", store=0)
+
+      if __name__ == '__main__':
+          main()
+
+      This example script listens on all interfaces for IPv6 PTB errors being forwarded using filter-based-forwarding. It removes the existing Ethernet source and rewrites a new Ethernet destination of the Ethernet broadcast address. It then sends the resulting frame out the p2p1 and p2p2 interfaces where our anycast servers reside.
     </t>
     </section>
 
   </section>
 
   <section title="Improvements">
-    <t> There are several ways to imagine that improvements could be made to the situation with respect load balancing ICMP PTB.
+    <t>There are several ways to imagine that improvements could be made to the situation with respect to ECMP load balancing of ICMPv6 PTB.
     </t>
 
     <t>
       <list style="numbers">
-        <t>Routers with sufficient capacity within the lookup process could parse all the way through the L3 or L4 header in the ICMP Payload begining at bit offset 32 of the ICMP header. By reordering the elements of the hash to match the inward direction of the flow the PTB could be directed to the same nexthop as the incoming packets in the flow.
+        <t>Routers with sufficient capacity within the lookup process could parse all the way through the L3 or L4 header in the ICMPv6 payload beginning at bit offset 32 of the ICMP header. By reordering the elements of the hash to match the inward direction of the flow, the PTB error could be directed to the same next-hop as the incoming packets in the flow.
         </t>
 
-        <t>The FIB could be programmed with a multicast distribution tree that included all of the necessary nexthops.
+        <t>The FIB could be programmed with a multicast distribution tree that included all of the necessary next-hops.
         </t>
       </list>
       </t>
