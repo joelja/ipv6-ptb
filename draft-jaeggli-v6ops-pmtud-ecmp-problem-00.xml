@@ -180,11 +180,11 @@
 
     <section title="Problem">
       <t>
-        A common application for stateless load balancing of TCP or UDP flows is to perform an initial subdivision of flows in front of a stateful load balancer tier or multiple servers so that the workload becomes divided into manageable fractions of the total number of flows. The flow division is performed using ECMP forwarding and a stateless but sticky algorithm for hashing  across the available paths. This is a constrained form of anycast distribution where all anycast destinations are equidistant topologically from the upstream router responsible for making the last next-hop forwarding decision before the flow arrives on the destination device. In this approach, the hash is performed across available protocol headers. Typically, these headers may include (IPv6)Flow-Label, ngress interface, IP-source, IP-destination, protocol, source-port, and destination-port.
+        A common application for stateless load balancing of TCP or UDP flows is to perform an initial subdivision of flows in front of a stateful load balancer tier or multiple servers so that the workload becomes divided into manageable fractions of the total number of flows. The flow division is performed using ECMP forwarding and a stateless but sticky algorithm for hashing  across the available paths. This is a constrained form of anycast distribution where all anycast destinations are equidistant topologically from the upstream router responsible for making the last next-hop forwarding decision before the flow arrives on the destination device. In this approach, the hash is performed across available protocol headers. Typically, these headers may include (IPv6)Flow-Label, ingress interface, IP-source, IP-destination, protocol, source-port, and destination-port.
       </t>
 
       <t>
-        A problem common to this approach of distribution through hashing is impact on path MTU discovery. An ICMPv6 type 2 PTB message generated on an intermediate device for a packet sent from an ECMP load balanced server to a client, will have the load-balanced anycast address as the destination and will be statelessly load balanced to one of the anycast servers. While the ICMPv6 PTB message contains as much of the packet that could not be forwarded as possible, the payload headers do not factor into the forwarding decision and are ignored. Because the PTB message is not identifiable as part of the orginal flow the results of the ICMPv6 ECMP hash are unlikely to be hashed to the same nexthop as packets matching TCP or UDP ECMP hash.
+        A problem common to this approach of distribution through hashing is impact on path MTU discovery. An ICMPv6 type 2 PTB message generated on an intermediate device for a packet sent from an ECMP load balanced server to a client, will have the load-balanced anycast address as the destination and will be statelessly load balanced to one of the anycast servers. While the ICMPv6 PTB message contains as much of the packet that could not be forwarded as possible, the payload headers do not factor into the forwarding decision and are ignored. Because the PTB message is not identifiable as part of the original flow the results of the ICMPv6 ECMP hash are unlikely to be hashed to the same nexthop as packets matching TCP or UDP ECMP hash.
       </t>
 
       <t>
@@ -212,15 +212,15 @@ The router ECMP decision is used because it is part of the forwarding architectu
 </t>
 
 <t>
-  The typical case where ICMPv6 PTB messages are received at the load balancer is a case where the path MTU from the client to the load balancer is limited by a tunnel in which the client itself is not aware of. In the comon case of a TCP flow where TLS is employed, the first packet that is likely to exceed a tunnel MTU lower than that specified by the MSS on the client and the load balancer/server is the TLS ServerHello and certificate.
+  The typical case where ICMPv6 PTB messages are received at the load balancer is a case where the path MTU from the client to the load balancer is limited by a tunnel in which the client itself is not aware of. In the common case of a TCP flow where TLS is employed, the first packet that is likely to exceed a tunnel MTU lower than that specified by the MSS on the client and the load balancer/server is the TLS ServerHello and certificate.
 </t>
 
 <t>
-  Direct experience says that the frequency of PTB messages is small compared to total flows. One possible conclusion being that tunneled IPv6 deployments that cannotcarry 1500 mtu packets are relatively rare. Techniques employed by clients such as happy-eyeballs may actually contribute some amelioration to the IPv6 client experience by prefering IPv4 in cases that might be identified as slow or failed. Still, the expectation of operators is that PMTUD should work and that unnecessary breakage of client traffic should be avoided.
+  Direct experience says that the frequency of PTB messages is small compared to total flows. One possible conclusion being that tunneled IPv6 deployments that cannot carry 1500 mtu packets are relatively rare. Techniques employed by clients such as happy-eyeballs may actually contribute some amelioration to the IPv6 client experience by preferring IPv4 in cases that might be identified as slow or failed. Still, the expectation of operators is that PMTUD should work and that unnecessary breakage of client traffic should be avoided.
 </t>
 
 <t>
-  A inal observation regarding server tuning is that it is typically not possible even if it is potentially desirable to be able to independently set the TCP MSS for different address families on end-systems.
+  A final observation regarding server tuning is that it is typically not possible even if it is potentially desirable to be able to independently set the TCP MSS for different address families on end-systems.
 </t>
 
   <t>The problem as described does also impact IPv4; however, the ability to fragment on wire at tunnel ingress points and the relative rarity of sub-1500 byte MTUs that are not coupled to changes in client behavior (for example, endpoint VPN clients set the tunnel interface MTU accordingly for performance reasons) makes the problem sufficiently rare that some deployments simply choose to ignore it.
@@ -229,7 +229,7 @@ The router ECMP decision is used because it is part of the forwarding architectu
 
   <section title="Mitigation">
     <t>
-      Mitigation of the potential for PTB messages to be misdelivered involves ensuring that an ICMPv6 error message is distributed to the same anycast server responsible for the flow for which the error is generated. Idealy Mitigation could be done by the mechanism hosts use to identify the flow, by looking into the payload of the ICMPv6 message (to determine which TCP flow it was associated with) before making a forwarding decision. Becuase the encapsulated IP header occurs at a fixed offset in the icmp message it is not outside the real of possibility that routers with sufficient header processing capability could parse that far into the payload. Employing a mediation device that handles the parsing and distribution of PTB messages after policy routing or on each load-balancer/server is one approach.
+      Mitigation of the potential for PTB messages to be mis-delivered involves ensuring that an ICMPv6 error message is distributed to the same anycast server responsible for the flow for which the error is generated. Ideally Mitigation could be done by the mechanism hosts use to identify the flow, by looking into the payload of the ICMPv6 message (to determine which TCP flow it was associated with) before making a forwarding decision. Because the encapsulated IP header occurs at a fixed offset in the icmp message it is not outside the real of possibility that routers with sufficient header processing capability could parse that far into the payload. Employing a mediation device that handles the parsing and distribution of PTB messages after policy routing or on each load-balancer/server is one approach.
     </t>
 
     <t>
