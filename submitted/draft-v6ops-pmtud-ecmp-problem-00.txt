@@ -1,0 +1,6 @@
+<html><head><title>You lose</title></head><body><style>.error { color: red; }</style>
+<h1 class='error'>No input file</h1>
+<pre class='error'></pre>
+<pre></pre>
+<hr/>
+<address>Apache/2.2.22 (Debian) Server at xml2rfc.ietf.org Port 80</address>
